@@ -21,16 +21,20 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 def scale(val, src, dst):
     return (float(val - src[0]) / (src[1] - src[0])) * (dst[1] - dst[0]) + dst[0]
 
+  
+# controls the work of the engines
 def engine():
 
     SPORT = 1 # 1 for Sport; 0 for Eco
-
+    
+    # initialise the connections between the engines and the ports they are connected to
     left_motor = Motor(Port.B)
     right_motor = Motor(Port.C)
 
     right_trigger = 0
     left_trigger = 0
-
+    
+    # needed to catch the inout from the PS4 controller
     infile_path = "/dev/input/event4"
     in_file = open(infile_path, "rb")
     FORMAT = 'llHHI'    
@@ -47,26 +51,32 @@ def engine():
             SPORT = 1
         if ev_type == 1 and code == 310 and value == 1:
             SPORT = 0
-
+        
+        # adjust the values up to the mode which is currently on
         if SPORT == 1:
             forward = scale(right_trigger, (0,255), (0,100))
             reverse = scale(left_trigger, (0,255), (0,-100))
         else:
             forward = scale(right_trigger, (0,255), (0,60))
             reverse = scale(left_trigger, (0,255), (0,-60))
-
+        
+        # move the engines
         left_motor.dc(forward + reverse)
         right_motor.dc(forward + reverse)
 
         event = in_file.read(EVENT_SIZE)
 
+        
+# controls the work of the steering       
 def steering():
     
+    # initialise the connections between the sterring and the port
     steering = Motor(Port.D)
 
     left_stick_y = 124
     SPORT = 1 # 1 for Sport; 0 for Eco
-
+    
+    # needed to catch the inout from the PS4 controller
     infile_path = "/dev/input/event4"
     in_file = open(infile_path, "rb")
     FORMAT = 'llHHI'    
@@ -81,22 +91,30 @@ def steering():
             SPORT = 1
         if ev_type == 1 and code == 310 and value == 1:
             SPORT = 0
-
+        
+        
+        # adjust the values up to the mode which is currently on
         if SPORT == 1:
             angle = scale(left_stick_y, (0,255), (18,-18))
         else:
            angle = scale(left_stick_y, (0,255), (80,-80))
-
+        
+        # move the steeing
         steering.run_target(9999, angle, then=Stop.HOLD, wait=False)
 
         event = in_file.read(EVENT_SIZE)
 
+        
+# play audio file       
 def audio():
     
     robot = EV3Brick()
+    
+    # upload the file you need using the proper path
     motor_start = r"/home/robot/Ferrari/motor_start.wav"
     horn = r"/home/robot/Ferrari/horn_1.wav"
-
+    
+    # needed to catch the inout from the PS4 controller
     infile_path = "/dev/input/event4"
     in_file = open(infile_path, "rb")
     FORMAT = 'llHHI'    
@@ -112,7 +130,7 @@ def audio():
         if ev_type == 1 and code == 308 and value == 0:
             robot.speaker.play_file(horn)
         if ev_type == 1 and code == 307 and value == 0:
-            robot.speaker.say("U suck")
+            robot.speaker.say("see you!")
         if ev_type == 1 and code == 311 and value == 1:
             robot.speaker.say("Sport mode")
         if ev_type == 1 and code == 310 and value == 1:
@@ -121,7 +139,7 @@ def audio():
 
         event = in_file.read(EVENT_SIZE)
 
-
+# thread functions
 tAction = Thread(target=engine, name='tAction')
 tAudio = Thread(target=audio, name='tAudio')
 tSteering = Thread(target=steering, name='tSteering')
